@@ -28,8 +28,6 @@ void *thread_function(void *data) {
 
     passa_tempo(thread_data->id, 0, thread_data->wait_time);
 
-    // TODO eu sempre visito as salas em ordem?
-
     // a crude first implementation
     for (int i = 0; i < num_rooms;) {
         passa_tempo(thread_data->id, 0, rooms[i].stay_time);
