@@ -1,0 +1,8 @@
+ColumnLimit: 100
+AllowShortFunctionsOnASingleLine: InlineOnly
+ReflowComments: false
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+IndentCaseLabels: true
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortLoopsOnASingleLine: true
+IndentWidth: 4
