@@ -4,7 +4,7 @@ BIN=bin
 # TODO CHANGE ME TO g++
 CXX=clang++
 # TODO CHANGE THESE TO g++ FLAGS
-CXXFLAGS=-std=c++17 -glldb -fstandalone-debug -Wall -g
+CXXFLAGS=-std=c++17 -glldb -fstandalone-debug -Wall
 
 run: build
 	./$(BIN)
