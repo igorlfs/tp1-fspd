@@ -30,7 +30,7 @@ void *thread_function(void *data) {
 
     // a crude first implementation
     for (int i = 0; i < num_rooms;) {
-        passa_tempo(thread_data->id, 0, rooms[i].stay_time);
+        passa_tempo(thread_data->id, rooms[i].id, rooms[i].stay_time);
         i++;
     }
 
