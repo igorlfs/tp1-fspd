@@ -1,16 +1,15 @@
 all: build
 
 BIN=bin
-# TODO CHANGE ME TO g++
 CXX=clang++
-# TODO CHANGE THESE TO g++ FLAGS
 CXXFLAGS=-std=c++17 -glldb -fstandalone-debug -Wall
+SRC_FILES=passa_tempo.cpp main.cpp
 
 run: build
 	./$(BIN)
 
-build: passa_tempo.cpp passa_tempo.hpp main.cpp
-	$(CXX) $(CXXFLAGS) passa_tempo.cpp main.cpp -o $(BIN)
+build: passa_tempo.hpp $(SRC_FILES)
+	[[ -z "${DEV}" ]] && g++ $(SRC_FILES) -o $(BIN) || $(CXX) $(CXXFLAGS) $(SRC_FILES) -o $(BIN)
 
 clean:
 	rm $(BIN) 
