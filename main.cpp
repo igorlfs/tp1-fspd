@@ -105,16 +105,6 @@ void *thread_function(void *data) {
     }
     leave(prev_room_id);
 
-    // TODO atualizar ou remover esse comentário
-    // enquanto existe próxima sala S' que pode ser retirada do trajeto
-    //        quando as regras o permitirem (forma trio, sala está vazia),
-    //              entra na próxima sala;
-    //              libera a posição anterior (se existir);
-    //              executa a função passa_tempo com o tempo associado à posição S';
-    //         fim quando
-    // fim enquanto
-    // libera a posição da última sala.
-
     return nullptr;
 }
 
