@@ -62,8 +62,6 @@ void enter(int room_id) {
 
     pthread_cond_broadcast(&cond_min_waiting.at(room_id));
 
-    // cout << _thread_id << " " << room_id << " " << waiting << " E" << endl;
-
     pthread_mutex_unlock(&mutex_room_waiting.at(room_id));
 }
 
@@ -74,8 +72,6 @@ void leave(int room_id) {
     auto &waiting = room_waiting.at(room_id);
 
     waiting--;
-
-    // cout << _thread_id << " " << room_id << " " << waiting << " L" << endl;
 
     if (waiting == 0) {
 
