@@ -23,67 +23,71 @@ constexpr int THREAD_POOL_SIZE = 10 * 3;
 
 array<pthread_t, THREAD_POOL_SIZE> thread_pool;
 
-array<pthread_mutex_t, THREAD_POOL_SIZE> mutex_room_waiter;
-array<pthread_mutex_t, THREAD_POOL_SIZE> mutex_room_current;
+array<pthread_mutex_t, THREAD_POOL_SIZE> mutex_room_waiting;
+array<pthread_mutex_t, THREAD_POOL_SIZE> mutex_room_full;
 
-array<pthread_cond_t, THREAD_POOL_SIZE> cond_counter;
+array<pthread_cond_t, THREAD_POOL_SIZE> cond_min_waiting;
+array<pthread_cond_t, THREAD_POOL_SIZE> cond_max_waiting;
+array<pthread_cond_t, THREAD_POOL_SIZE> cond_full;
 
-array<int, THREAD_POOL_SIZE> room_waiters;
-array<int, THREAD_POOL_SIZE> room_current;
+array<int, THREAD_POOL_SIZE> room_waiting;
+array<bool, THREAD_POOL_SIZE> room_full;
 
 // Pré-condição: não estou em uma sala
 void enter(int room_id) {
-    pthread_mutex_lock(&mutex_room_waiter.at(room_id));
+    pthread_mutex_lock(&mutex_room_full.at(room_id));
+    while (room_full.at(room_id)) {
+        pthread_cond_wait(&cond_full.at(room_id), &mutex_room_full.at(room_id));
+    }
+    pthread_mutex_unlock(&mutex_room_full.at(room_id));
 
-    auto &waiters = room_waiters.at(room_id);
+    pthread_mutex_lock(&mutex_room_waiting.at(room_id));
 
-    waiters++;
+    auto &waiting = room_waiting.at(room_id);
 
-    while (waiters < 3 || waiters > 3) {
-        pthread_cond_wait(&cond_counter.at(room_id), &mutex_room_waiter.at(room_id));
+    while (waiting == 3) {
+        pthread_cond_wait(&cond_max_waiting.at(room_id), &mutex_room_waiting.at(room_id));
     }
 
-    // NOTE remover
-    // cout << thread_id << " " << room_id << " " << waiters << " W" << endl;
+    waiting++;
 
-    pthread_cond_broadcast(&cond_counter.at(room_id));
-
-    pthread_mutex_lock(&mutex_room_current.at(room_id));
-
-    auto &current = room_current.at(room_id);
-
-    if (current == 0) {
-        current = 3;
+    while (waiting < 3) {
+        pthread_cond_wait(&cond_min_waiting.at(room_id), &mutex_room_waiting.at(room_id));
     }
 
-    pthread_mutex_unlock(&mutex_room_current.at(room_id));
+    pthread_mutex_lock(&mutex_room_full.at(room_id));
+    room_full.at(room_id) = true;
+    pthread_mutex_unlock(&mutex_room_full.at(room_id));
 
-    pthread_mutex_unlock(&mutex_room_waiter.at(room_id));
+    pthread_cond_broadcast(&cond_min_waiting.at(room_id));
+
+    // cout << _thread_id << " " << room_id << " " << waiting << " E" << endl;
+
+    pthread_mutex_unlock(&mutex_room_waiting.at(room_id));
 }
 
 // Pré-condição: estou em uma sala
 void leave(int room_id) {
-    pthread_mutex_lock(&mutex_room_current.at(room_id));
-    auto &current = room_current.at(room_id);
+    pthread_mutex_lock(&mutex_room_waiting.at(room_id));
 
-    current--;
+    auto &waiting = room_waiting.at(room_id);
 
-    // NOTE remover
-    // cout << thread_id << " " << room_id << " " << current << " C" << endl;
+    waiting--;
 
-    if (current == 0) {
-        pthread_mutex_lock(&mutex_room_waiter.at(room_id));
+    // cout << _thread_id << " " << room_id << " " << waiting << " L" << endl;
 
-        auto &waiters = room_waiters.at(room_id);
+    if (waiting == 0) {
 
-        waiters -= 3;
+        pthread_mutex_lock(&mutex_room_full.at(room_id));
+        room_full.at(room_id) = false;
+        pthread_mutex_unlock(&mutex_room_full.at(room_id));
 
-        pthread_mutex_unlock(&mutex_room_waiter.at(room_id));
+        pthread_cond_broadcast(&cond_full.at(room_id));
 
-        pthread_cond_broadcast(&cond_counter.at(room_id));
+        pthread_cond_broadcast(&cond_max_waiting.at(room_id));
     }
 
-    pthread_mutex_unlock(&mutex_room_current.at(room_id));
+    pthread_mutex_unlock(&mutex_room_waiting.at(room_id));
 }
 
 void *thread_function(void *data) {
@@ -119,9 +123,11 @@ int main() {
     cin >> num_all_rooms >> num_all_threads;
 
     for (int i = 0; i < num_all_threads; ++i) {
-        pthread_mutex_init(&mutex_room_waiter.at(i), nullptr);
-        pthread_mutex_init(&mutex_room_current.at(i), nullptr);
-        pthread_cond_init(&cond_counter.at(i), nullptr);
+        pthread_mutex_init(&mutex_room_waiting.at(i), nullptr);
+        pthread_mutex_init(&mutex_room_full.at(i), nullptr);
+        pthread_cond_init(&cond_min_waiting.at(i), nullptr);
+        pthread_cond_init(&cond_max_waiting.at(i), nullptr);
+        pthread_cond_init(&cond_full.at(i), nullptr);
     }
 
     vector<ThreadData> all_thread_data(num_all_threads);
