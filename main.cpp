@@ -15,6 +15,7 @@ struct ThreadData {
     int id;
     int wait_time;
     int num_rooms;
+    int prev_room_id;
     vector<Room> rooms;
 };
 
@@ -94,14 +95,19 @@ void *thread_function(void *data) {
     auto *thread_data = static_cast<ThreadData *>(data);
     auto &num_rooms = thread_data->num_rooms;
     auto &rooms = thread_data->rooms;
+    auto &prev_room_id = thread_data->prev_room_id;
 
     passa_tempo(thread_data->id, 0, thread_data->wait_time);
 
     for (int i = 0; i < num_rooms; ++i) {
         enter(rooms[i].id);
+        if (prev_room_id != 0) {
+            leave(prev_room_id);
+        }
         passa_tempo(thread_data->id, rooms[i].id, rooms[i].stay_time);
-        leave(rooms[i].id);
+        prev_room_id = rooms[i].id;
     }
+    leave(prev_room_id);
 
     // TODO atualizar ou remover esse comentário
     // enquanto existe próxima sala S' que pode ser retirada do trajeto
