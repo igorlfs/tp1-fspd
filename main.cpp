@@ -37,25 +37,34 @@ array<bool, THREAD_POOL_SIZE> room_full;
 // Pré-condição: não estou em uma sala
 void enter(int room_id) {
     pthread_mutex_lock(&mutex_room_full.at(room_id));
+
+    // Esperar enquanto a sala estiver ocupada
     while (room_full.at(room_id)) {
         pthread_cond_wait(&cond_full.at(room_id), &mutex_room_full.at(room_id));
     }
+
     pthread_mutex_unlock(&mutex_room_full.at(room_id));
 
     pthread_mutex_lock(&mutex_room_waiting.at(room_id));
 
     auto &waiting = room_waiting.at(room_id);
 
+    // Em princípio, é possível que 4 threads passem pelo mutex para checar se a sala está ocupada
+    // Nesse caso, poderia acontecer de essas 4 threads rodarem simultaneamente, o que não é desejado
+    // Confirmei que isso realmente pode acontecer, com um exemplo de entrada
+    // que tinha apenas uma sala, mas muitas threads
     while (waiting == 3) {
         pthread_cond_wait(&cond_max_waiting.at(room_id), &mutex_room_waiting.at(room_id));
     }
 
     waiting++;
 
+    // As duas primeiras threads que "passarem", deverão ficar esperando pela terceira
     while (waiting < 3) {
         pthread_cond_wait(&cond_min_waiting.at(room_id), &mutex_room_waiting.at(room_id));
     }
 
+    // Se chegamos até aqui, a sala agora está cheia
     pthread_mutex_lock(&mutex_room_full.at(room_id));
     room_full.at(room_id) = true;
     pthread_mutex_unlock(&mutex_room_full.at(room_id));
@@ -71,16 +80,21 @@ void leave(int room_id) {
 
     auto &waiting = room_waiting.at(room_id);
 
+    // É possível decrementar a quantidade de threads "atualmente" na sala
+    // até chegar em zero, para esvaziá-la
     waiting--;
 
     if (waiting == 0) {
 
+        // Sala liberada
         pthread_mutex_lock(&mutex_room_full.at(room_id));
         room_full.at(room_id) = false;
         pthread_mutex_unlock(&mutex_room_full.at(room_id));
 
+        // Desperta quem estava travado por causa da sala estar cheia
         pthread_cond_broadcast(&cond_full.at(room_id));
 
+        // Também desperta quem estava travado porque passou pelo mutex da sala estar cheia
         pthread_cond_broadcast(&cond_max_waiting.at(room_id));
     }
 
