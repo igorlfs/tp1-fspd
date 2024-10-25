@@ -94,7 +94,7 @@ void leave(int room_id) {
         // Desperta quem estava travado por causa da sala estar cheia
         pthread_cond_broadcast(&cond_full.at(room_id));
 
-        // Também desperta quem estava travado porque passou pelo mutex da sala estar cheia
+        // Também desperta quem estava travado porque só passam 3 threads por vez
         pthread_cond_broadcast(&cond_max_waiting.at(room_id));
     }
 
